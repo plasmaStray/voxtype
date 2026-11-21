@@ -243,6 +243,8 @@ pub struct PasteOutput {
     restore_clipboard: bool,
     /// Delay after paste before restoring clipboard (milliseconds)
     restore_clipboard_delay_ms: u32,
+    /// Whether transcript clipboard writes should be marked sensitive.
+    mark_clipboard_sensitive: bool,
     /// Order in which keystroke-capable drivers (wtype/eitype/ydotool) are
     /// tried for the paste keystroke and the auto-submit Enter. Derived from
     /// `[output] driver_order`; see [`resolve_keystroke_driver_order`].
@@ -261,6 +263,7 @@ impl PasteOutput {
         pre_type_delay_ms: u32,
         restore_clipboard: bool,
         restore_clipboard_delay_ms: u32,
+        mark_clipboard_sensitive: bool,
     ) -> Self {
         let keystroke_str = paste_keys.as_deref().unwrap_or("ctrl+v");
         let keystroke = ParsedKeystroke::parse(keystroke_str).unwrap_or_else(|e| {
@@ -285,6 +288,7 @@ impl PasteOutput {
             pre_type_delay_ms,
             restore_clipboard,
             restore_clipboard_delay_ms,
+            mark_clipboard_sensitive,
             driver_order,
         }
     }
@@ -299,46 +303,8 @@ impl PasteOutput {
             return copy_to_x11_clipboard(text.as_bytes()).await;
         }
 
-        // Spawn wl-copy with stdin pipe
-        let mut child = Command::new("wl-copy")
-            .arg("--type")
-            .arg(super::clipboard::WL_COPY_TEXT_MIME)
-            .stdin(Stdio::piped())
-            .stdout(Stdio::null())
-            .stderr(Stdio::piped())
-            .spawn()
-            .map_err(|e| {
-                if e.kind() == std::io::ErrorKind::NotFound {
-                    OutputError::WlCopyNotFound
-                } else {
-                    OutputError::InjectionFailed(e.to_string())
-                }
-            })?;
-
-        // Write text to stdin
-        if let Some(mut stdin) = child.stdin.take() {
-            stdin
-                .write_all(text.as_bytes())
-                .await
-                .map_err(|e| OutputError::InjectionFailed(e.to_string()))?;
-
-            // Close stdin to signal EOF
-            drop(stdin);
-        }
-
-        // Wait for completion
-        let status = child
-            .wait()
+        super::clipboard::copy_to_wayland_clipboard(text.as_bytes(), self.mark_clipboard_sensitive)
             .await
-            .map_err(|e| OutputError::InjectionFailed(e.to_string()))?;
-
-        if !status.success() {
-            return Err(OutputError::InjectionFailed(
-                "wl-copy exited with error".to_string(),
-            ));
-        }
-
-        Ok(())
     }
 
     /// Read current clipboard content using wl-paste (Wayland) or xclip (X11 fallback)
@@ -1018,21 +984,21 @@ mod tests {
 
     #[test]
     fn test_new_stores_restore_clipboard_fields() {
-        let output = PasteOutput::new(false, None, None, None, 10, 100, true, 300);
+        let output = PasteOutput::new(false, None, None, None, 10, 100, true, 300, false);
         assert!(output.restore_clipboard);
         assert_eq!(output.restore_clipboard_delay_ms, 300);
     }
 
     #[test]
     fn test_new_defaults_restore_clipboard_disabled() {
-        let output = PasteOutput::new(false, None, None, None, 10, 100, false, 200);
+        let output = PasteOutput::new(false, None, None, None, 10, 100, false, 200, false);
         assert!(!output.restore_clipboard);
         assert_eq!(output.restore_clipboard_delay_ms, 200);
     }
 
     #[test]
     fn test_driver_order_defaults_to_wtype_eitype_ydotool() {
-        let output = PasteOutput::new(false, None, None, None, 10, 100, false, 200);
+        let output = PasteOutput::new(false, None, None, None, 10, 100, false, 200, false);
         assert_eq!(
             output.driver_order,
             vec![
@@ -1057,6 +1023,7 @@ mod tests {
             100,
             false,
             200,
+            false,
         );
         assert_eq!(
             output.driver_order,
@@ -1078,6 +1045,7 @@ mod tests {
             100,
             false,
             200,
+            false,
         );
         assert_eq!(
             output.driver_order,

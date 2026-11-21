@@ -24,15 +24,74 @@ use tokio::process::Command;
 /// `TEXT` aliases that XWayland and older clients ask for.
 pub(crate) const WL_COPY_TEXT_MIME: &str = "text/plain;charset=utf-8";
 
+/// Copy text to the Wayland clipboard, optionally asking history managers to
+/// omit the selection. Older wl-clipboard versions reject `--sensitive`; in
+/// that case retry without the hint so output continues to work.
+pub(crate) async fn copy_to_wayland_clipboard(
+    text: &[u8],
+    mark_sensitive: bool,
+) -> Result<(), OutputError> {
+    async fn copy(
+        text: &[u8],
+        mark_sensitive: bool,
+    ) -> Result<std::process::ExitStatus, OutputError> {
+        let mut command = Command::new("wl-copy");
+        command.arg("--type").arg(WL_COPY_TEXT_MIME);
+        if mark_sensitive {
+            command.arg("--sensitive");
+        }
+        let mut child = command
+            .stdin(Stdio::piped())
+            .stdout(Stdio::null())
+            .stderr(Stdio::piped())
+            .spawn()
+            .map_err(|e| {
+                if e.kind() == std::io::ErrorKind::NotFound {
+                    OutputError::WlCopyNotFound
+                } else {
+                    OutputError::InjectionFailed(e.to_string())
+                }
+            })?;
+        if let Some(mut stdin) = child.stdin.take() {
+            stdin
+                .write_all(text)
+                .await
+                .map_err(|e| OutputError::InjectionFailed(e.to_string()))?;
+        }
+        child
+            .wait()
+            .await
+            .map_err(|e| OutputError::InjectionFailed(e.to_string()))
+    }
+
+    let status = copy(text, mark_sensitive).await?;
+    if status.success() {
+        return Ok(());
+    }
+    if mark_sensitive {
+        tracing::debug!("wl-copy rejected --sensitive; retrying without it");
+        if copy(text, false).await?.success() {
+            return Ok(());
+        }
+    }
+    Err(OutputError::InjectionFailed(
+        "wl-copy exited with error".to_string(),
+    ))
+}
+
 pub struct ClipboardOutput {
     /// Text to append after transcription
     append_text: Option<String>,
+    mark_sensitive: bool,
 }
 
 impl ClipboardOutput {
     /// Create a new clipboard output
-    pub fn new(append_text: Option<String>) -> Self {
-        Self { append_text }
+    pub fn new(append_text: Option<String>, mark_sensitive: bool) -> Self {
+        Self {
+            append_text,
+            mark_sensitive,
+        }
     }
 }
 
@@ -50,44 +109,7 @@ impl TextOutput for ClipboardOutput {
             std::borrow::Cow::Borrowed(text)
         };
 
-        // Spawn wl-copy with stdin pipe
-        let mut child = Command::new("wl-copy")
-            .arg("--type")
-            .arg(WL_COPY_TEXT_MIME)
-            .stdin(Stdio::piped())
-            .stdout(Stdio::null())
-            .stderr(Stdio::piped())
-            .spawn()
-            .map_err(|e| {
-                if e.kind() == std::io::ErrorKind::NotFound {
-                    OutputError::WlCopyNotFound
-                } else {
-                    OutputError::InjectionFailed(e.to_string())
-                }
-            })?;
-
-        // Write text to stdin
-        if let Some(mut stdin) = child.stdin.take() {
-            stdin
-                .write_all(text.as_bytes())
-                .await
-                .map_err(|e| OutputError::InjectionFailed(e.to_string()))?;
-
-            // Close stdin to signal EOF
-            drop(stdin);
-        }
-
-        // Wait for completion
-        let status = child
-            .wait()
-            .await
-            .map_err(|e| OutputError::InjectionFailed(e.to_string()))?;
-
-        if !status.success() {
-            return Err(OutputError::InjectionFailed(
-                "wl-copy exited with error".to_string(),
-            ));
-        }
+        copy_to_wayland_clipboard(text.as_bytes(), self.mark_sensitive).await?;
 
         tracing::info!("Text copied to clipboard ({} chars)", text.len());
         Ok(())
@@ -122,10 +144,10 @@ mod tests {
 
     #[test]
     fn test_new() {
-        let output = ClipboardOutput::new(None);
+        let output = ClipboardOutput::new(None, false);
         assert!(output.append_text.is_none());
 
-        let output = ClipboardOutput::new(Some(" ".to_string()));
+        let output = ClipboardOutput::new(Some(" ".to_string()), false);
         assert_eq!(output.append_text, Some(" ".to_string()));
     }
 }

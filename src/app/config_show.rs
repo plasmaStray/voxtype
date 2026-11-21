@@ -168,6 +168,10 @@ pub(crate) async fn show_config(config: &config::Config) -> anyhow::Result<()> {
         "  fallback_to_clipboard = {}",
         config.output.fallback_to_clipboard
     );
+    println!(
+        "  clipboard_mark_sensitive = {}",
+        config.output.clipboard_mark_sensitive
+    );
     if let Some(ref driver_order) = config.output.driver_order {
         println!(
             "  driver_order = [{}]",

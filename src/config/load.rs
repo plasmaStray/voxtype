@@ -305,6 +305,9 @@ pub fn load_config(path: Option<&Path>) -> Result<Config, VoxtypeError> {
     if let Ok(val) = std::env::var("VOXTYPE_RESTORE_CLIPBOARD") {
         config.output.restore_clipboard = parse_bool_env(&val);
     }
+    if let Ok(val) = std::env::var("VOXTYPE_CLIPBOARD_MARK_SENSITIVE") {
+        config.output.clipboard_mark_sensitive = parse_bool_env(&val);
+    }
     if let Ok(val) = std::env::var("VOXTYPE_RESTORE_CLIPBOARD_DELAY_MS") {
         if let Ok(ms) = val.parse::<u32>() {
             config.output.restore_clipboard_delay_ms = ms;

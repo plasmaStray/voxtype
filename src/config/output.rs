@@ -23,6 +23,11 @@ pub struct OutputConfig {
     #[serde(default = "default_true")]
     pub fallback_to_clipboard: bool,
 
+    /// Mark Wayland transcription clipboard writes as sensitive so history
+    /// managers can omit them. Does not affect clipboard restoration.
+    #[serde(default)]
+    pub clipboard_mark_sensitive: bool,
+
     /// Custom driver order for type mode (overrides default: wtype -> dotool -> ydotool -> clipboard)
     /// Specify which drivers to try and in what order.
     /// Example: ["ydotool", "wtype"] to prefer ydotool over wtype
@@ -192,6 +197,7 @@ impl Default for OutputConfig {
         Self {
             mode: OutputMode::default(),
             fallback_to_clipboard: true,
+            clipboard_mark_sensitive: false,
             driver_order: None,
             notification: NotificationConfig::default(),
             type_delay_ms: 0,

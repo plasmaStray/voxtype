@@ -70,6 +70,9 @@ pub(crate) fn apply_cli_overrides(config: &mut config::Config, cli: &Cli) -> Opt
     if cli.restore_clipboard {
         config.output.restore_clipboard = true;
     }
+    if cli.clipboard_mark_sensitive {
+        config.output.clipboard_mark_sensitive = true;
+    }
     if let Some(delay) = cli.restore_clipboard_delay_ms {
         config.output.restore_clipboard_delay_ms = delay;
     }

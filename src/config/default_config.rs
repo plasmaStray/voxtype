@@ -206,6 +206,10 @@ mode = "type"
 # Fall back to clipboard if typing fails
 fallback_to_clipboard = true
 
+# Ask Wayland clipboard history managers to omit Voxtype transcriptions.
+# Requires wl-clipboard 2.3 or newer; older versions fall back automatically.
+# clipboard_mark_sensitive = false
+
 # Custom driver order for type mode (optional)
 # Default order: wtype -> dotool -> ydotool -> clipboard
 # Customize to prefer a specific driver or change the fallback order.

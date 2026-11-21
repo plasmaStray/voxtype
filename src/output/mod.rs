@@ -324,9 +324,10 @@ fn create_driver_output(
             config.auto_submit,
             config.append_text.clone(),
         )),
-        OutputDriver::Clipboard => {
-            Box::new(clipboard::ClipboardOutput::new(config.append_text.clone()))
-        }
+        OutputDriver::Clipboard => Box::new(clipboard::ClipboardOutput::new(
+            config.append_text.clone(),
+            config.clipboard_mark_sensitive,
+        )),
         OutputDriver::Xclip => Box::new(xclip::XclipOutput::new(config.append_text.clone())),
     }
 }
@@ -404,6 +405,7 @@ pub fn create_output_chain_with_override(
                 {
                     chain.push(Box::new(clipboard::ClipboardOutput::new(
                         config.append_text.clone(),
+                        config.clipboard_mark_sensitive,
                     )));
                 }
             }
@@ -419,6 +421,7 @@ pub fn create_output_chain_with_override(
                 // Clipboard with X11 fallback: wl-copy first, then xclip
                 chain.push(Box::new(clipboard::ClipboardOutput::new(
                     config.append_text.clone(),
+                    config.clipboard_mark_sensitive,
                 )));
                 chain.push(Box::new(xclip::XclipOutput::new(
                     config.append_text.clone(),
@@ -436,6 +439,7 @@ pub fn create_output_chain_with_override(
                 pre_type_delay_ms,
                 config.restore_clipboard,
                 config.restore_clipboard_delay_ms,
+                config.clipboard_mark_sensitive,
             )));
 
             // The modifier-release guard (wait_for_modifier_release) skips
@@ -454,6 +458,7 @@ pub fn create_output_chain_with_override(
             if config.fallback_to_clipboard {
                 chain.push(Box::new(clipboard::ClipboardOutput::new(
                     config.append_text.clone(),
+                    config.clipboard_mark_sensitive,
                 )));
                 chain.push(Box::new(xclip::XclipOutput::new(
                     config.append_text.clone(),
@@ -471,6 +476,7 @@ pub fn create_output_chain_with_override(
             }
             chain.push(Box::new(clipboard::ClipboardOutput::new(
                 config.append_text.clone(),
+                config.clipboard_mark_sensitive,
             )));
         }
     }

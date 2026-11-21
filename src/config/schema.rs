@@ -1148,6 +1148,15 @@ pub const CONFIG_KEYS: &[KeySpec] = &[
         "Copy the text instead of dropping it when every typing driver fails.",
     ),
     spec(
+        "output.clipboard_mark_sensitive",
+        "output",
+        "clipboard_mark_sensitive",
+        KeyType::Bool,
+        "Output",
+        "Mark clipboard text sensitive",
+        "Ask Wayland clipboard history managers to omit Voxtype transcription writes.",
+    ),
+    spec(
         "output.auto_submit",
         "output",
         "auto_submit",
@@ -2933,6 +2942,7 @@ pub fn resolve(key: &str, cfg: &Config) -> Option<Json> {
         "output.type_delay_ms" => json!(cfg.output.type_delay_ms),
         "output.paste_keys" => opt_str(cfg.output.paste_keys.as_ref()),
         "output.restore_clipboard" => json!(cfg.output.restore_clipboard),
+        "output.clipboard_mark_sensitive" => json!(cfg.output.clipboard_mark_sensitive),
         "output.restore_clipboard_delay_ms" => json!(cfg.output.restore_clipboard_delay_ms),
         "output.wait_for_modifier_release" => json!(cfg.output.wait_for_modifier_release),
         "output.modifier_release_timeout_ms" => json!(cfg.output.modifier_release_timeout_ms),

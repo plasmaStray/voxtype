@@ -2032,6 +2032,14 @@ restore_clipboard = true
 
 When enabled, voxtype saves your clipboard content before pasting, then restores it after a brief delay. This works with both text and binary clipboard content (images, files) on Wayland via `wl-paste`, and with text content on X11 via `xclip`. You can also enable it from the command line with `--restore-clipboard` or the `VOXTYPE_RESTORE_CLIPBOARD=true` environment variable.
 
+To keep dictations out of Wayland clipboard history, set
+`output.clipboard_mark_sensitive = true`. Voxtype then asks `wl-copy` to mark
+the transcription as sensitive; history managers that honor this hint skip
+recording it. This applies only to Voxtype's transcription write, not to the
+clipboard contents restored afterward. Requires wl-clipboard 2.3 or newer;
+older versions fall back to a regular copy. Enable it with
+`--clipboard-mark-sensitive` or `VOXTYPE_CLIPBOARD_MARK_SENSITIVE=true` as well.
+
 ### Fallback Behavior
 
 Voxtype uses a fallback chain: wtype → eitype → dotool → ydotool → clipboard (wl-copy) → xclip

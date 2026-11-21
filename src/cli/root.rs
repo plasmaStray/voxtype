@@ -339,6 +339,10 @@ pub struct Cli {
     )]
     pub restore_clipboard: bool,
 
+    /// Ask Wayland clipboard history managers to omit Voxtype transcriptions
+    #[arg(long, help_heading = "Output")]
+    pub clipboard_mark_sensitive: bool,
+
     /// Delay in milliseconds after paste before restoring clipboard (default: 200)
     #[arg(
         long,

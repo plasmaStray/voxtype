@@ -2313,6 +2313,28 @@ restore_clipboard = true
 restore_clipboard_delay_ms = 300  # Longer delay for slower systems
 ```
 
+### clipboard_mark_sensitive
+
+**Type:** Boolean
+**Default:** `false`
+**Applies to:** Wayland clipboard and paste output
+
+When enabled, Voxtype passes `--sensitive` to `wl-copy` when writing a
+transcription. Clipboard history managers that honor the Wayland sensitive
+selection hint can then skip saving the dictation. This does not mark clipboard
+content restored by `restore_clipboard`, and it has no effect on X11.
+
+Requires wl-clipboard 2.3 or newer. If `wl-copy` rejects the option, Voxtype
+retries the copy without it so the transcription is still delivered.
+
+```toml
+[output]
+clipboard_mark_sensitive = true
+```
+
+You can also enable it with `--clipboard-mark-sensitive` or
+`VOXTYPE_CLIPBOARD_MARK_SENSITIVE=true`.
+
 ### fallback_to_clipboard
 
 **Type:** Boolean
@@ -4164,6 +4186,7 @@ Any config file setting can be overridden via environment variable. These are ap
 | `VOXTYPE_PRE_TYPE_DELAY` | integer | `output.pre_type_delay_ms` |
 | `VOXTYPE_TYPE_DELAY` | integer | `output.type_delay_ms` |
 | `VOXTYPE_FALLBACK_TO_CLIPBOARD` | bool | `output.fallback_to_clipboard` |
+| `VOXTYPE_CLIPBOARD_MARK_SENSITIVE` | bool | `output.clipboard_mark_sensitive` |
 | `VOXTYPE_PASTE_KEYS` | string | `output.paste_keys` |
 | `VOXTYPE_DOTOOL_XKB_LAYOUT` | string | `output.dotool_xkb_layout` |
 | `VOXTYPE_DOTOOL_XKB_VARIANT` | string | `output.dotool_xkb_variant` |
